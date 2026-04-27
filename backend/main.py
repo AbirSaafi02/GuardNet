@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import engine
 from backend.models import models
-from backend.routers import anomaly, auth, scan, settings, users
+from backend.routers import anomaly, auth, scan, settings, users, monitoring
+from backend.services import monitoring_service
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -22,6 +23,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(settings.router)
 app.include_router(anomaly.router)
+app.include_router(monitoring.router)
 
 
 @app.get("/")
