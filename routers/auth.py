@@ -5,6 +5,7 @@ from schemas.user import UserCreate, UserLogin, UserOut, TokenResponse
 from services.auth_service import register_user, loginUser
 from dependencies.auth import get_current_user
 from models.models import User
+from fastapi.security import OAuth2PasswordRequestForm
 router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/register", response_model=UserOut)
 def register(data: UserCreate, db: Session = Depends(get_db)):
@@ -12,11 +13,12 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
         user = register_user(db, data)
         return user
     except ValueError as e:
+
         raise HTTPException(status_code=400, detail=str(e))
 @router.post("/login",response_model=TokenResponse)
-def login(data:UserLogin,db:Session=Depends(get_db)):
+def login(data:OAuth2PasswordRequestForm = Depends(),db:Session=Depends(get_db)):
     try:
-        token = loginUser(db, data)
+        token = loginUser(db, data.username,data.password)
         return {"access_token": token, "token_type": "bearer"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
