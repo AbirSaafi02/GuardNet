@@ -1,39 +1,74 @@
-import subprocess
-from sqlalchemy.orm import Session
 import time
-from backend.models.models import Device, MetricHistory, Alert
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+import subprocess
+from typing import Optional
+
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy.orm import Session
+
 from backend.database import SessionLocal
-from pysnmp.hlapi import *
+from backend.models.models import Alert, Device, MetricHistory
+
+PING_TIMEOUT_MS = 1000
+MONITOR_MAX_WORKERS = 16
+
+
+def probe_device(ip: str) -> tuple[bool, Optional[float]]:
+    start = time.perf_counter()
+    try:
+        result = subprocess.run(
+            ["ping", "-n", "1", "-w", str(PING_TIMEOUT_MS), ip],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except OSError:
+        return False, None
+
+    latency_ms = None
+    if result.returncode == 0:
+        latency_ms = round((time.perf_counter() - start) * 1000, 2)
+
+    return result.returncode == 0, latency_ms
+
+
+def _probe_device(device: Device) -> tuple[int, bool, Optional[float]]:
+    is_up, latency_ms = probe_device(device.ip)
+    return device.id, is_up, latency_ms
 
 def ping_device(ip: str) -> bool:
-    result = subprocess.run(
-        ["ping", "-n", "1", "-w", "1000", ip], stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
-    )
-    return result.returncode == 0
+    is_up, _ = probe_device(ip)
+    return is_up
 
-def calculerLantence(ip: str) -> float:
-    start = time.time()
-    result = subprocess.run(["ping", "-n", "1", "-w", "1000", ip], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    end = time.time()
-    if result.returncode == 0:
-        return round((end - start) * 1000, 2)
-    return None
+
+def calculerLantence(ip: str) -> Optional[float]:
+    _, latency_ms = probe_device(ip)
+    return latency_ms
+
 
 def monitor_devices(db: Session):
     devices = db.query(Device).all()
-    for i in devices:
-        is_up = ping_device(i.ip)
-        duree = calculerLantence(i.ip)
+
+    if not devices:
+        return
+
+    max_workers = min(MONITOR_MAX_WORKERS, len(devices))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        probe_results = {
+            device_id: (is_up, latency_ms)
+            for device_id, is_up, latency_ms in executor.map(_probe_device, devices)
+        }
+
+    for device in devices:
+        is_up, duree = probe_results.get(device.id, (False, None))
         if is_up:
-            i.status = "online"
+            device.status = "online"
         else:
-            i.status = "offline"
-        i.last_seen = datetime.utcnow()
+            device.status = "offline"
+        device.last_seen = datetime.utcnow()
         metric = MetricHistory(
-            device_id=i.id,
+            device_id=device.id,
             timestamp=datetime.utcnow(),
             latency_ms=duree,
             is_up=is_up
@@ -64,6 +99,16 @@ scheduler.start()
 
 def get_snmp_matrice(ip: str) -> dict:
     try:
+        from pysnmp.hlapi import (
+            CommunityData,
+            ContextData,
+            ObjectIdentity,
+            ObjectType,
+            SnmpEngine,
+            UdpTransportTarget,
+            getCmd,
+        )
+
         iterator = getCmd(
             SnmpEngine(),
             CommunityData('public', mpModel=0),
