@@ -1,15 +1,24 @@
 import os
-os.environ["PGPASSWORD"] = "1410"
-os.environ["PGAPPNAME"] = "guardnet"
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "postgresql+psycopg://postgres:1410@localhost:5432/guardnet"
+ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=ENV_PATH, override=True, encoding="utf-8-sig")
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg2://postgres:1410@localhost:5432/guardnet",
+)
+DATABASE_URL = DATABASE_URL.replace("postgresql+psycopg://", "postgresql+psycopg2://")
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
 def get_db():
     db = SessionLocal()
     try:

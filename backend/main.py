@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine
-from models import models
-from routers import scan, auth, users, settings, anomaly
+
+from backend.database import engine
+from backend.models import models
+from backend.routers import anomaly, auth, scan, settings, users
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -21,6 +22,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(settings.router)
 app.include_router(anomaly.router)
+
 
 @app.get("/")
 def root():

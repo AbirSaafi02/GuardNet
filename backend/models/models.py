@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from database import Base
+
+from backend.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -10,6 +12,7 @@ class User(Base):
     nom = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
 
 class Device(Base):
     __tablename__ = "devices"
@@ -23,6 +26,7 @@ class Device(Base):
     last_seen = Column(DateTime, nullable=True)
     alerts = relationship("Alert", back_populates="device")
 
+
 class Scan(Base):
     __tablename__ = "scans"
     id = Column(Integer, primary_key=True, index=True)
@@ -31,6 +35,7 @@ class Scan(Base):
     started_at = Column(DateTime, server_default=func.now())
     finished_at = Column(DateTime, nullable=True)
     devices_found = Column(Integer, default=0)
+
 
 class ScanResult(Base):
     __tablename__ = "scan_results"
@@ -43,6 +48,7 @@ class ScanResult(Base):
     ports = Column(JSON)
     is_new = Column(Boolean, default=False)
 
+
 class Alert(Base):
     __tablename__ = "alerts"
     id = Column(Integer, primary_key=True, index=True)
@@ -54,6 +60,7 @@ class Alert(Base):
     resolved = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
 
+
 class MetricHistory(Base):
     __tablename__ = "metric_history"
     id = Column(Integer, primary_key=True, index=True)
@@ -63,6 +70,7 @@ class MetricHistory(Base):
     is_up = Column(Boolean)
     cpu_percent = Column(Float, nullable=True)
     ram_percent = Column(Float, nullable=True)
+
 
 class TrafficMetric(Base):
     __tablename__ = "traffic_metrics"
@@ -75,6 +83,7 @@ class TrafficMetric(Base):
     top_ips = Column(JSON)
     top_ports = Column(JSON)
 
+
 class AnomalyLog(Base):
     __tablename__ = "anomaly_logs"
     id = Column(Integer, primary_key=True, index=True)
@@ -83,6 +92,7 @@ class AnomalyLog(Base):
     score = Column(Float)
     is_anomaly = Column(Boolean)
     alert_id = Column(Integer, ForeignKey("alerts.id"), nullable=True)
+
 
 class Settings(Base):
     __tablename__ = "settings"
