@@ -1,0 +1,7 @@
+INFO:     Started server process [22828]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8002 (Press CTRL+C to quit)
+Run time of job "scheduled_monitor (trigger: interval[0:00:30], next run at: 2026-04-27 22:37:59 WAT)" was missed by 0:00:01.107623
+Run time of job "scheduled_monitor (trigger: interval[0:00:30], next run at: 2026-04-27 22:51:59 WAT)" was missed by 0:00:18.407163
+Run time of job "scheduled_monitor (trigger: interval[0:00:30], next run at: 2026-04-27 23:22:29 WAT)" was missed by 0:00:10.966389
